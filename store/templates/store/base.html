@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FashionHub - Seasonal Clothing{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- AOS Animations -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+    <style>
+        :root {
+            --primary-color: #3a86ff;
+            --secondary-color: #ff006e;
+            --accent-color: #8338ec;
+            --light-bg: #f8f9fa;
+            --dark-bg: #212529;
+            --success-color: #06d6a0;
+            --warning-color: #ffbe0b;
+            --danger-color: #ef476f;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #333;
+            background-color: #fff;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        /* Enhanced Navbar */
+        .navbar {
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #353b48 100%);
+        }
+        
+        .navbar-brand {
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-link {
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            margin: 0 0.25rem;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .search-form {
+            position: relative;
+        }
+        
+        .search-form .btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: none;
+            border: none;
+            color: #aaa;
+            transition: all 0.3s ease;
+        }
+        
+        .search-form .btn:hover {
+            color: var(--primary-color);
+        }
+        
+        .search-form input {
+            padding-right: 40px;
+            border-radius: 50px;
+            border: none;
+            background-color: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .search-form input:focus {
+            background-color: rgba(255,255,255,0.2);
+            box-shadow: none;
+        }
+        
+        .search-form input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        /* Notification badges */
+        .notification-badge {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .badge-float {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.65rem;
+            padding: 0.25rem 0.4rem;
+        }
+        
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card-img-top {
+            height: 240px;
+            object-fit: cover;
+        }
+        
+        /* Buttons */
+        .btn {
+            border-radius: 4px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #2a75e8;
+            border-color: #2a75e8;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        /* Footer */
+        footer {
+            background-color: var(--dark-bg);
+            padding: 4rem 0 2rem;
+            color: #fff;
+        }
+        
+        footer h5 {
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+        
+        footer h5:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background-color: var(--primary-color);
+        }
+        
+        footer a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        footer a:hover {
+            color: var(--primary-color);
+            padding-left: 5px;
+        }
+        
+        .social-icons a {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            line-height: 36px;
+            text-align: center;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icons a:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+        
+        /* Dropdown Menu */
+        .dropdown-menu {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+        }
+        
+        .dropdown-item {
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown-item:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--primary-color);
+        }
+        
+        /* Main content */
+        main {
+            min-height: calc(100vh - 400px);
+        }
+        
+        /* Alert messages */
+        .alert {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .navbar-collapse {
+                background-color: var(--dark-bg);
+                padding: 1rem;
+                border-radius: 8px;
+                margin-top: 1rem;
+            }
+            
+            .search-form {
+                margin-top: 1rem;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'store:home' %}">
+                <i class="fas fa-tshirt me-2"></i>FashionHub
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'store:home' %}">
+                            <i class="fas fa-home me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="menDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-male me-1"></i> Men
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-animate" aria-labelledby="menDropdown">
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Men">All Men's Items</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Men&season=1">Spring</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Men&season=2">Summer</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Men&season=3">Fall</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Men&season=4">Winter</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="womenDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-female me-1"></i> Women
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-animate" aria-labelledby="womenDropdown">
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Women">All Women's Items</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Women&season=1">Spring</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Women&season=2">Summer</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Women&season=3">Fall</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:product_list' %}?gender=Women&season=4">Winter</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'store:product_list' %}">
+                            <i class="fas fa-tags me-1"></i> Shop All
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto d-flex align-items-center">
+                    <li class="nav-item me-3">
+                        <form class="search-form d-flex" action="{% url 'store:product_list' %}" method="GET">
+                            <input class="form-control" type="search" placeholder="Search..." name="q" aria-label="Search">
+                            <button class="btn" type="submit"><i class="fas fa-search"></i></button>
+                        </form>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item mx-2">
+                        <a class="nav-link notification-badge" href="{% url 'store:wishlist' %}">
+                            <i class="far fa-heart"></i>
+                            {% if wishlist_products %}
+                            <span class="badge rounded-pill bg-danger badge-float">{{ wishlist_products|length }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item mx-2">
+                        <a class="nav-link notification-badge" href="{% url 'store:cart' %}">
+                            <i class="fas fa-shopping-cart"></i>
+                            {% if cart.items.all %}
+                            <span class="badge rounded-pill bg-primary badge-float">{{ cart.items.count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown mx-2">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>My Account</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:my_orders' %}"><i class="fas fa-box me-2"></i>My Orders</a></li>
+                            <li><a class="dropdown-item" href="{% url 'store:wishlist' %}"><i class="far fa-heart me-2"></i>My Wishlist</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'store:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item mx-1">
+                        <a class="nav-link btn btn-outline-light btn-sm px-3" href="{% url 'store:login' %}">Login</a>
+                    </li>
+                    <li class="nav-item mx-1">
+                        <a class="nav-link btn btn-primary btn-sm px-3" href="{% url 'store:register' %}">Register</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="py-5">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 col-md-6 mb-4 mb-md-0" data-aos="fade-up" data-aos-delay="100">
+                    <h5>FashionHub</h5>
+                    <p class="text-muted">Your destination for seasonal clothing for men and women.</p>
+                    <p class="text-muted"><i class="fas fa-map-marker-alt me-2"></i>123 Fashion Street, Kathmandu, Nepal</p>
+                    <p class="text-muted"><i class="fas fa-phone me-2"></i>+977 1234567890</p>
+                    <p class="text-muted"><i class="fas fa-envelope me-2"></i>info@fashionhub.com</p>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4 mb-md-0" data-aos="fade-up" data-aos-delay="200">
+                    <h5>Shop</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}?gender=Men">Men's Collection</a></li>
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}?gender=Women">Women's Collection</a></li>
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}?season=1">Spring Wear</a></li>
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}?season=2">Summer Wear</a></li>
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}?season=3">Fall Wear</a></li>
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}?season=4">Winter Wear</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-6 mb-4 mb-md-0" data-aos="fade-up" data-aos-delay="300">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{% url 'store:home' %}">Home</a></li>
+                        <li class="mb-2"><a href="#">About Us</a></li>
+                        <li class="mb-2"><a href="#">Contact</a></li>
+                        <li class="mb-2"><a href="#">Blog</a></li>
+                        <li class="mb-2"><a href="#">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="#">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-6 mb-4 mb-md-0" data-aos="fade-up" data-aos-delay="400">
+                    <h5>Stay Connected</h5>
+                    <p class="text-muted mb-3">Subscribe to our newsletter for updates on new arrivals, offers and more!</p>
+                    <div class="input-group mb-3">
+                        <input type="email" class="form-control" placeholder="Your email" aria-label="Your email">
+                        <button class="btn btn-primary" type="button"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                    <div class="social-icons mt-3">
+                        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" aria-label="Pinterest"><i class="fab fa-pinterest"></i></a>
+                        <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-md-start text-center mb-2 mb-md-0">
+                    <p class="mb-0">&copy; 2025 FashionHub. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end text-center">
+                    <img src="https://via.placeholder.com/300x35/ffffff/333333?text=Payment+Methods" alt="Payment Methods" class="img-fluid" style="max-height: 30px;">
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AOS Animations -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init({
+                duration: 800,
+                once: true
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

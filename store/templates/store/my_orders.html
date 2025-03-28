@@ -1,0 +1,382 @@
+{% extends 'store/base.html' %}
+
+{% block title %}My Orders - FashionHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .order-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .order-timeline:before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 15px;
+    }
+    
+    .timeline-dot {
+        position: absolute;
+        left: -30px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #3a86ff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 10px;
+        z-index: 2;
+    }
+    
+    .cancelled .timeline-dot {
+        background-color: #ef476f;
+    }
+    
+    .delivered .timeline-dot {
+        background-color: #06d6a0;
+    }
+    
+    .shipped .timeline-dot {
+        background-color: #118ab2;
+    }
+    
+    .timeline-content {
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .order-card {
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-bottom: 30px;
+    }
+    
+    .order-card:hover {
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .order-header {
+        background-color: #fff;
+        padding: 20px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .order-body {
+        padding: 25px;
+    }
+    
+    .order-footer {
+        background-color: rgba(0,0,0,0.02);
+        padding: 15px 25px;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .product-table {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .product-table th {
+        background-color: rgba(0,0,0,0.03);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .detail-section {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        height: 100%;
+    }
+    
+    .detail-section h6 {
+        font-weight: 600;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 5px 10px;
+        border-radius: 50px;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    .empty-orders {
+        padding: 60px 0;
+        text-align: center;
+    }
+    
+    .empty-orders i {
+        font-size: 5rem;
+        margin-bottom: 20px;
+        color: #e9ecef;
+    }
+    
+    .empty-orders h3 {
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    
+    .cancel-btn {
+        background-color: transparent;
+        color: #ef476f;
+        border: 1px solid #ef476f;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        padding: 0.4rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .cancel-btn:hover {
+        background-color: #ef476f;
+        color: white;
+    }
+    
+    .order-meta {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .total-row {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .order-header {
+            flex-direction: column;
+        }
+        
+        .order-header .text-end {
+            text-align: left !important;
+            margin-top: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-5" data-aos="fade-up">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-2">My Orders</h1>
+            <p class="text-muted lead">Track and manage your order history</p>
+            <hr class="my-4">
+        </div>
+    </div>
+    
+    {% if messages %}
+    <div class="alert alert-info alert-dismissible fade show mb-4" role="alert" data-aos="fade-up" data-aos-delay="100">
+        {% for message in messages %}
+        <p {% if message.tags %} class="{{ message.tags }} mb-0"{% endif %}>{{ message }}</p>
+        {% endfor %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    {% if orders %}
+    <div class="row">
+        {% for order in orders %}
+        <div class="col-12 mb-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:100 }}">
+            <div class="card shadow-sm order-card">
+                <div class="card-header order-header bg-white d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h5 class="mb-1">Order #{{ order.id }}</h5>
+                        <div class="order-meta">
+                            <span><i class="far fa-calendar-alt me-1"></i> {{ order.created_at|date:"F j, Y" }}</span>
+                            <span class="mx-2">•</span>
+                            <span><i class="far fa-clock me-1"></i> {{ order.created_at|date:"g:i a" }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="status-badge me-3 {% if order.status == 'cancelled' %}bg-danger{% elif order.status == 'delivered' %}bg-success{% elif order.status == 'shipped' %}bg-info{% else %}bg-primary{% endif %}">
+                            {% if order.status == 'pending' %}
+                                <i class="fas fa-clock me-1"></i>
+                            {% elif order.status == 'processing' %}
+                                <i class="fas fa-cog me-1"></i>
+                            {% elif order.status == 'shipped' %}
+                                <i class="fas fa-shipping-fast me-1"></i>
+                            {% elif order.status == 'delivered' %}
+                                <i class="fas fa-check-circle me-1"></i>
+                            {% elif order.status == 'cancelled' %}
+                                <i class="fas fa-times-circle me-1"></i>
+                            {% endif %}
+                            {{ order.get_status_display }}
+                        </span>
+                        {% if order.can_cancel %}
+                        <form method="POST" action="{% url 'store:cancel_order' order.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn cancel-btn" onclick="return confirm('Are you sure you want to cancel this order?')">
+                                <i class="fas fa-ban me-1"></i> Cancel Order
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if order.status == 'delivered' and not order.is_received %}
+                        <form method="POST" action="{% url 'store:confirm_receipt' order.id %}" class="d-inline ms-2">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Confirm that you have received this order?')">
+                                <i class="fas fa-box-check me-1"></i> Confirm Receipt
+                            </button>
+                        </form>
+                        {% elif order.is_received %}
+                        <span class="badge bg-success ms-2 p-2">
+                            <i class="fas fa-check me-1"></i> Received
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card-body order-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <div class="detail-section">
+                                <h6><i class="fas fa-map-marker-alt me-2"></i>Shipping Details</h6>
+                                <p class="mb-1"><strong>{{ order.full_name }}</strong></p>
+                                <p class="mb-1">{{ order.address }}</p>
+                                <p class="mb-1">{{ order.city }}, {{ order.state }} {{ order.postal_code }}</p>
+                                <p class="mb-1"><i class="fas fa-phone me-2"></i>{{ order.phone }}</p>
+                                <p class="mb-1"><i class="fas fa-envelope me-2"></i>{{ order.email }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="detail-section">
+                                <h6><i class="fas fa-info-circle me-2"></i>Order Details</h6>
+                                <p class="mb-1"><strong>Payment Method:</strong> {{ order.get_payment_method_display }}</p>
+                                <p class="mb-1"><strong>Payment Status:</strong> 
+                                    {% if order.payment_status %}
+                                    <span class="badge bg-success">Paid</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </p>
+                                <p class="mb-3"><strong>Total Amount:</strong> <span class="fw-bold text-primary">Rs. {{ order.total_amount }}</span></p>
+                                
+                                {% if order.status != 'pending' and order.status != 'cancelled' %}
+                                <div class="order-timeline mt-4">
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot"><i class="fas fa-check"></i></div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0"><strong>Order Placed</strong> - {{ order.created_at|date:"M d, g:i a" }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if order.status == 'processing' or order.status == 'shipped' or order.status == 'delivered' %}
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot"><i class="fas fa-cog"></i></div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0"><strong>Processing</strong></p>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if order.status == 'shipped' or order.status == 'delivered' %}
+                                    <div class="timeline-item shipped">
+                                        <div class="timeline-dot"><i class="fas fa-truck"></i></div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0"><strong>Shipped</strong></p>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if order.status == 'delivered' %}
+                                    <div class="timeline-item delivered">
+                                        <div class="timeline-dot"><i class="fas fa-home"></i></div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0"><strong>Delivered</strong></p>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% elif order.status == 'cancelled' %}
+                                <div class="order-timeline mt-4">
+                                    <div class="timeline-item">
+                                        <div class="timeline-dot"><i class="fas fa-check"></i></div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0"><strong>Order Placed</strong> - {{ order.created_at|date:"M d, g:i a" }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="timeline-item cancelled">
+                                        <div class="timeline-dot"><i class="fas fa-times"></i></div>
+                                        <div class="timeline-content">
+                                            <p class="mb-0"><strong>Cancelled</strong> - {% if order.cancellation_reason %}{{ order.cancellation_reason }}{% endif %}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover product-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-center">Price</th>
+                                    <th class="text-center">Quantity</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items.all %}
+                                <tr>
+                                    <td>{{ item.product_name }}</td>
+                                    <td class="text-center">Rs. {{ item.price }}</td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-end">Rs. {{ item.subtotal }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <th colspan="3" class="text-end">Total:</th>
+                                    <th class="text-end">Rs. {{ order.total_amount }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if order.order_notes %}
+                <div class="card-footer order-footer">
+                    <strong>Order Notes:</strong> {{ order.order_notes }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-orders" data-aos="fade-up">
+        <i class="fas fa-shopping-bag"></i>
+        <h3>You haven't placed any orders yet</h3>
+        <p class="text-muted mb-4">Browse our products and place your first order.</p>
+        <a href="{% url 'store:product_list' %}" class="btn btn-primary">Start Shopping</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
