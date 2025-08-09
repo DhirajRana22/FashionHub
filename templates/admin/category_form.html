@@ -1,0 +1,229 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ title }} - FashionHub Admin{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-{% if category %}edit{% else %}plus{% endif %} me-2"></i>{{ title }}
+                </h5>
+            </div>
+            
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Category Name -->
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Category Name *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.name.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                    {{ form.description }}
+                    <small class="form-text text-muted">Brief description of this category</small>
+                    {% if form.description.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.description.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Parent Category -->
+                <div class="mb-3">
+                    <label for="{{ form.parent.id_for_label }}" class="form-label">Parent Category</label>
+                    {{ form.parent }}
+                    <small class="form-text text-muted">Leave empty to create a main category, or select a parent to create a subcategory</small>
+                    {% if form.parent.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.parent.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Category Image -->
+                <div class="mb-3">
+                    <label for="{{ form.image.id_for_label }}" class="form-label">Category Image</label>
+                    {{ form.image }}
+                    {% if category and category.image %}
+                        <div class="mt-2">
+                            <small class="text-muted">Current image:</small><br>
+                            <img src="{{ category.image.url }}" alt="{{ category.name }}" class="img-thumbnail mt-1" style="max-width: 200px; max-height: 200px;">
+                        </div>
+                    {% endif %}
+                    <small class="form-text text-muted">Upload an image to represent this category (optional)</small>
+                    {% if form.image.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.image.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-admin btn-success">
+                        <i class="fas fa-save me-2"></i>{% if category %}Update Category{% else %}Add Category{% endif %}
+                    </button>
+                    <a href="{% url 'custom_admin:categories' %}" class="btn btn-admin btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Sidebar with Information -->
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>Category Guidelines</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item">
+                    <strong>Main Categories</strong><br>
+                    <small class="text-muted">Use for broad classifications like "Men", "Women", "Kids", etc.</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Subcategories</strong><br>
+                    <small class="text-muted">Use for specific product types like "T-Shirts", "Jeans", "Shoes", etc.</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Naming Convention</strong><br>
+                    <small class="text-muted">Use clear, descriptive names that customers will understand</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Images</strong><br>
+                    <small class="text-muted">Use high-quality images that represent the category well</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Structure Preview -->
+        <div class="admin-card mt-3">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-sitemap me-2"></i>Current Structure</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for main_cat in main_categories %}
+                <div class="list-group-item">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-folder text-primary me-2"></i>
+                        <strong>{{ main_cat.name }}</strong>
+                        <span class="badge bg-primary ms-auto">{{ main_cat.product_set.count }}</span>
+                    </div>
+                    {% if main_cat.children.exists %}
+                        <div class="mt-2">
+                            {% for sub_cat in main_cat.children.all %}
+                            <div class="d-flex align-items-center ms-3 mb-1">
+                                <i class="fas fa-folder-open text-info me-2"></i>
+                                <small>{{ sub_cat.name }}</small>
+                                <span class="badge bg-info ms-auto">{{ sub_cat.product_set.count }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="list-group-item text-center text-muted">
+                    <i class="fas fa-folder-plus fa-2x mb-2"></i><br>
+                    No categories yet
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if category %}
+        <div class="admin-card mt-3">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-chart-bar me-2"></i>Category Stats</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Products:</span>
+                    <strong>{{ category.product_set.count }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Subcategories:</span>
+                    <strong>{{ category.children.count }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Created:</span>
+                    <strong>{{ category.created_at|date:"M d, Y" }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Type:</span>
+                    {% if category.parent %}
+                        <span class="badge bg-info">Subcategory</span>
+                    {% else %}
+                        <span class="badge bg-primary">Main Category</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Image preview
+document.getElementById('id_image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Remove existing preview if any
+            const existingPreview = document.querySelector('.image-preview');
+            if (existingPreview) {
+                existingPreview.remove();
+            }
+            
+            // Create new preview
+            const preview = document.createElement('div');
+            preview.className = 'image-preview mt-2';
+            preview.innerHTML = `
+                <small class="text-muted">Preview:</small><br>
+                <img src="${e.target.result}" class="img-thumbnail mt-1" style="max-width: 200px; max-height: 200px;">
+            `;
+            
+            // Insert after the file input
+            e.target.parentNode.appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Parent category change handler
+document.getElementById('id_parent').addEventListener('change', function(e) {
+    const selectedValue = e.target.value;
+    const helpText = e.target.parentNode.querySelector('.form-text');
+    
+    if (selectedValue) {
+        helpText.textContent = 'This will be created as a subcategory';
+        helpText.className = 'form-text text-info';
+    } else {
+        helpText.textContent = 'Leave empty to create a main category, or select a parent to create a subcategory';
+        helpText.className = 'form-text text-muted';
+    }
+});
+</script>
+{% endblock %}

@@ -20,8 +20,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', include('store.urls', namespace='store')),
+    path('django-admin/', admin.site.urls),  # Renamed default admin
+    path('admin/', include('store.admin_urls')),  # Custom admin panel
+    path('', include('store.urls')),
 ]
 
 if settings.DEBUG:

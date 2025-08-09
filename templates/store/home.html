@@ -1,0 +1,373 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}FashionHub - Seasonal Clothing Store{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="bg-dark text-white p-5 rounded shadow">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="display-4 fw-bold">Your Personalised Wardrobe to Shop your best appereance. "Seasonal Fashion For Everyone"</h1>
+                    <p class="lead">Discover the latest trends for every season. Quality clothing for men and women.</p>
+                    <a href="{% url 'store:product_list' %}" class="btn btn-light btn-lg mt-3">Shop Now</a>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="{% static 'images/FashionHub.jpg' %}" alt="Fashion Hub" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gender Categories -->
+<div class="row mb-5">
+    <div class="col-12 text-center mb-4">
+        <h2>Explore Your Own</h2>
+        <p class="text-muted">Browse our collections for men and women</p>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/Menswears.jpg' %}" class="card-img-top" alt="Men's Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Men's Collection</h5>
+                <a href="{% url 'store:product_list' %}?parent_category={{ men_category.id }}" class="btn btn-outline-primary">Shop Men's Cloths</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/Raw logo.jpg' %}" class="card-img-top" alt="Women's Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Women's Collection</h5>
+                <a href="{% url 'store:product_list' %}?parent_category={{ women_category.id }}" class="btn btn-outline-primary">Shop Women's Cloths</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/Kids.png' %}" class="card-img-top" alt="Kids Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Kids Collection</h5>
+                <a href="{% url 'store:product_list' %}?parent_category={{ kids_category.id }}" class="btn btn-outline-primary">Shop Kids Cloths</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/Unisex.png' %}" class="card-img-top" alt="Unisex Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Unisex Collection</h5>
+                <a href="{% url 'store:product_list' %}?parent_category={{ unisex_category.id }}" class="btn btn-outline-primary">Shop Unisex Cloths</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seasonal Categories -->
+<div class="row mb-5">
+    <div class="col-12 text-center mb-4">
+        <h2>Explore Seasons</h2>
+        <p class="text-muted">Find the perfect outfit for any time of year</p>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/SpringOutfit.jpg' %}" class="card-img-top" alt="Spring Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Spring</h5>
+                <a href="{% url 'store:product_list' %}?season=1" class="btn btn-outline-success">View Collection</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/SummerOutfit.jpg' %}" class="card-img-top" alt="Summer Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Summer</h5>
+                <a href="{% url 'store:product_list' %}?season=2" class="btn btn-outline-warning">View Collection</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/AutumnOutfit.jpg' %}" class="card-img-top" alt="Autumn Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Autumn</h5>
+                <a href="{% url 'store:product_list' %}?season=3" class="btn btn-outline-danger">View Collection</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100 shadow-sm">
+            <img src="{% static 'images/WinterOutfit.jpg' %}" class="card-img-top" alt="Winter Collection">
+            <div class="card-body text-center">
+                <h5 class="card-title">Winter</h5>
+                <a href="{% url 'store:product_list' %}?season=4" class="btn btn-outline-info">View Collection</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Featured Products -->
+{% if featured_products %}
+<div class="featured-products-section mb-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-4">
+                <h2>Featured Products</h2>
+                <p class="text-muted">Check out our most popular items</p>
+            </div>
+        </div>
+        
+        <!-- Swipe Navigation Buttons -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-outline-secondary swipe-btn" id="prevBtn" onclick="swipeProducts(-1)">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="swipe-indicators" id="swipeIndicators"></div>
+            <button class="btn btn-outline-secondary swipe-btn" id="nextBtn" onclick="swipeProducts(1)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <!-- Products Container -->
+        <div class="products-swipe-container">
+            <div class="products-grid" id="productsGrid">
+                {% for product in featured_products %}
+                <div class="product-card-wrapper">
+                    <div class="card h-100 shadow-sm product-card">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                        {% else %}
+                        <img src="https://via.placeholder.com/300x300/dee2e6/6c757d?text=No+Image" class="card-img-top" alt="{{ product.name }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            <p class="card-text text-muted">{{ product.category }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">Rs. {{ product.price }}</span>
+                                <a href="{% url 'store:product_detail' product.id %}" class="btn btn-sm btn-outline-dark">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Swipe Functionality Styles -->
+<style>
+.featured-products-section {
+    overflow: hidden;
+}
+
+.products-swipe-container {
+    overflow: hidden;
+    position: relative;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 20px;
+    transition: transform 0.3s ease;
+    width: 100%;
+}
+
+.product-card-wrapper {
+    min-height: 400px;
+}
+
+.swipe-btn {
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #dee2e6;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+.swipe-btn:hover {
+    background: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.swipe-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.swipe-indicators {
+    display: flex;
+    gap: 8px;
+}
+
+.indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #dee2e6;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.indicator.active {
+    background: #0d6efd;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .products-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(4, 1fr);
+    }
+    
+    .swipe-btn {
+        width: 35px;
+        height: 35px;
+    }
+}
+
+@media (max-width: 576px) {
+    .products-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(8, 1fr);
+    }
+}
+</style>
+
+<!-- Swipe Functionality Script -->
+<script>
+let currentPage = 0;
+let totalPages = 0;
+let productsPerPage = 8; // 4x2 grid
+
+function initializeSwipe() {
+    const products = document.querySelectorAll('.product-card-wrapper');
+    const totalProducts = products.length;
+    totalPages = Math.ceil(totalProducts / productsPerPage);
+    
+    // Create indicators
+    const indicatorsContainer = document.getElementById('swipeIndicators');
+    indicatorsContainer.innerHTML = '';
+    
+    for (let i = 0; i < totalPages; i++) {
+        const indicator = document.createElement('div');
+        indicator.className = 'indicator';
+        if (i === 0) indicator.classList.add('active');
+        indicator.onclick = () => goToPage(i);
+        indicatorsContainer.appendChild(indicator);
+    }
+    
+    updateSwipeButtons();
+    showCurrentPage();
+}
+
+function swipeProducts(direction) {
+    const newPage = currentPage + direction;
+    if (newPage >= 0 && newPage < totalPages) {
+        currentPage = newPage;
+        showCurrentPage();
+        updateSwipeButtons();
+        updateIndicators();
+    }
+}
+
+function goToPage(page) {
+    currentPage = page;
+    showCurrentPage();
+    updateSwipeButtons();
+    updateIndicators();
+}
+
+function showCurrentPage() {
+    const products = document.querySelectorAll('.product-card-wrapper');
+    const startIndex = currentPage * productsPerPage;
+    const endIndex = startIndex + productsPerPage;
+    
+    products.forEach((product, index) => {
+        if (index >= startIndex && index < endIndex) {
+            product.style.display = 'block';
+        } else {
+            product.style.display = 'none';
+        }
+    });
+}
+
+function updateSwipeButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.disabled = currentPage === totalPages - 1;
+}
+
+function updateIndicators() {
+    const indicators = document.querySelectorAll('.indicator');
+    indicators.forEach((indicator, index) => {
+        if (index === currentPage) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    });
+}
+
+// Touch/Swipe support for mobile
+let startX = 0;
+let endX = 0;
+
+function handleTouchStart(e) {
+    startX = e.touches[0].clientX;
+}
+
+function handleTouchEnd(e) {
+    endX = e.changedTouches[0].clientX;
+    handleSwipeGesture();
+}
+
+function handleSwipeGesture() {
+    const threshold = 50; // Minimum distance for swipe
+    const diff = startX - endX;
+    
+    if (Math.abs(diff) > threshold) {
+        if (diff > 0) {
+            // Swipe left - next page
+            swipeProducts(1);
+        } else {
+            // Swipe right - previous page
+            swipeProducts(-1);
+        }
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSwipe();
+    
+    // Add touch event listeners
+    const container = document.querySelector('.products-swipe-container');
+    if (container) {
+        container.addEventListener('touchstart', handleTouchStart, { passive: true });
+        container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

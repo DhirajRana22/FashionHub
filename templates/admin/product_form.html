@@ -1,0 +1,394 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ title }} - FashionHub Admin{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-{% if product %}edit{% else %}plus{% endif %} me-2"></i>{{ title }}
+                </h5>
+            </div>
+            
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Product Name -->
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">Product Name *</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.name.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label">Description *</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.description.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Price and Stock -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.price.id_for_label }}" class="form-label">Price (Rs.) *</label>
+                            {{ form.price }}
+                            {% if form.price.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.price.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.stock.id_for_label }}" class="form-label">Stock Quantity *</label>
+                            {{ form.stock }}
+                            {% if form.stock.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.stock.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Category and Season -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">Category *</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.category.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.season.id_for_label }}" class="form-label">Season *</label>
+                            {{ form.season }}
+                            {% if form.season.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.season.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Product Image -->
+                <div class="mb-3">
+                    <label for="{{ form.image.id_for_label }}" class="form-label">Product Image</label>
+                    {{ form.image }}
+                    {% if product and product.image %}
+                        <div class="mt-2">
+                            <small class="text-muted">Current image:</small><br>
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail mt-1" style="max-width: 200px; max-height: 200px;">
+                        </div>
+                    {% endif %}
+                    {% if form.image.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.image.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tags -->
+                <div class="mb-3">
+                    <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                    {{ form.tags }}
+                    <small class="form-text text-muted">Enter tags separated by commas to improve search (e.g., t-shirt, cotton, summer)</small>
+                    {% if form.tags.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.tags.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Featured -->
+                <div class="mb-4">
+                    <div class="form-check">
+                        {{ form.featured }}
+                        <label class="form-check-label" for="{{ form.featured.id_for_label }}">
+                            Mark as Featured Product
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">Featured products will be highlighted on the homepage</small>
+                    {% if form.featured.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.featured.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Product Sizes -->
+                <div class="mb-4">
+                    <h6 class="mb-3"><i class="fas fa-ruler me-2"></i>Product Sizes</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <small class="text-muted mb-3 d-block">Add available sizes and their stock quantities. Leave stock as 0 if size is not available.</small>
+                        
+                        {{ size_formset.management_form }}
+                        
+                        <div id="size-formset">
+                            {% for form in size_formset %}
+                                <div class="size-form-row row mb-2 align-items-center" data-form-index="{{ forloop.counter0 }}">
+                                    <div class="col-md-5">
+                                        <label class="form-label small">Size</label>
+                                        {{ form.size }}
+                                        {% if form.size.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.size.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Stock</label>
+                                        {{ form.stock }}
+                                        {% if form.stock.errors %}
+                                            <div class="text-danger">
+                                                {% for error in form.stock.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">&nbsp;</label>
+                                        <div class="d-flex align-items-center">
+                                            {% if form.DELETE %}
+                                                <div class="form-check me-2">
+                                                    {{ form.DELETE }}
+                                                    <label class="form-check-label small text-danger" for="{{ form.DELETE.id_for_label }}">
+                                                        Delete
+                                                    </label>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-size-form">
+                            <i class="fas fa-plus me-1"></i>Add Another Size
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-admin btn-success">
+                        <i class="fas fa-save me-2"></i>{% if product %}Update Product{% else %}Add Product{% endif %}
+                    </button>
+                    <a href="{% url 'custom_admin:products' %}" class="btn btn-admin btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Sidebar with Tips -->
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-lightbulb me-2"></i>Tips</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item">
+                    <strong>Product Name</strong><br>
+                    <small class="text-muted">Use clear, descriptive names that customers will search for</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Description</strong><br>
+                    <small class="text-muted">Include material, fit, care instructions, and key features</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Pricing</strong><br>
+                    <small class="text-muted">Research competitor prices and consider your target market</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Images</strong><br>
+                    <small class="text-muted">Use high-quality images with good lighting. Recommended size: 800x800px</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Tags</strong><br>
+                    <small class="text-muted">Add relevant keywords to help customers find your products</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Stock Management</strong><br>
+                    <small class="text-muted">Keep stock levels updated to avoid overselling</small>
+                </div>
+                <div class="list-group-item">
+                    <strong>Product Sizes</strong><br>
+                    <small class="text-muted">Add available sizes with their stock quantities. Customers can only select sizes with stock > 0</small>
+                </div>
+            </div>
+        </div>
+        
+        {% if product %}
+        <div class="admin-card mt-3">
+            <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-chart-bar me-2"></i>Product Stats</h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Created:</span>
+                    <strong>{{ product.created_at|date:"M d, Y" }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Last Updated:</span>
+                    <strong>{{ product.updated_at|date:"M d, Y" }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Current Stock:</span>
+                    <strong>{{ product.stock }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Status:</span>
+                    {% if product.featured %}
+                        <span class="badge bg-primary">Featured</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Regular</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Image preview
+document.getElementById('id_image').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Remove existing preview if any
+            const existingPreview = document.querySelector('.image-preview');
+            if (existingPreview) {
+                existingPreview.remove();
+            }
+            
+            // Create new preview
+            const preview = document.createElement('div');
+            preview.className = 'image-preview mt-2';
+            preview.innerHTML = `
+                <small class="text-muted">Preview:</small><br>
+                <img src="${e.target.result}" class="img-thumbnail mt-1" style="max-width: 200px; max-height: 200px;">
+            `;
+            
+            // Insert after the file input
+            e.target.parentNode.appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Size formset management
+document.addEventListener('DOMContentLoaded', function() {
+    const addButton = document.getElementById('add-size-form');
+    const formsetContainer = document.getElementById('size-formset');
+    const totalFormsInput = document.getElementById('id_productsizes-TOTAL_FORMS');
+    
+    // Store available sizes data
+    const availableSizes = [
+        {% for size in available_sizes %}
+            {id: {{ size.id }}, name: '{{ size.name|escapejs }}'},
+        {% endfor %}
+    ];
+    
+    if (addButton && formsetContainer && totalFormsInput) {
+        addButton.addEventListener('click', function() {
+            const formCount = parseInt(totalFormsInput.value);
+            
+            // Create size options
+            let sizeOptions = '<option value="">---------</option>';
+            availableSizes.forEach(size => {
+                sizeOptions += `<option value="${size.id}">${size.name}</option>`;
+            });
+            
+            const newFormHtml = `
+                <div class="size-form-row row mb-2 align-items-center" data-form-index="${formCount}">
+                    <div class="col-md-5">
+                        <label class="form-label small">Size</label>
+                        <select name="productsizes-${formCount}-size" class="form-select" id="id_productsizes-${formCount}-size">
+                            ${sizeOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Stock</label>
+                        <input type="number" name="productsizes-${formCount}-stock" class="form-control" min="0" placeholder="0" id="id_productsizes-${formCount}-stock">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">&nbsp;</label>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-size-form">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="productsizes-${formCount}-id" id="id_productsizes-${formCount}-id">
+                </div>
+            `;
+            
+            formsetContainer.insertAdjacentHTML('beforeend', newFormHtml);
+            totalFormsInput.value = formCount + 1;
+        });
+        
+        // Handle remove buttons for dynamically added forms
+        formsetContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-size-form') || e.target.closest('.remove-size-form')) {
+                const formRow = e.target.closest('.size-form-row');
+                if (formRow) {
+                    formRow.remove();
+                    // Update form count
+                    const remainingForms = formsetContainer.querySelectorAll('.size-form-row').length;
+                    totalFormsInput.value = remainingForms;
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

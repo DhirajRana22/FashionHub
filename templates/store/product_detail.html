@@ -1,0 +1,580 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ product.name }} - FashionHub{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Product Details -->
+    <div class="col-lg-8 mb-4">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'store:home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'store:product_list' %}">Products</a></li>
+                {% if product.category.parent %}
+                <li class="breadcrumb-item"><a href="{% url 'store:product_list' %}?parent_category={{ product.category.parent.id }}">{{ product.category.parent.name }}</a></li>
+                {% endif %}
+                <li class="breadcrumb-item"><a href="{% url 'store:product_list' %}?category={{ product.category.id }}">{{ product.category.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm">
+            <div class="row g-0">
+                <div class="col-md-6">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="img-fluid rounded-start" alt="{{ product.name }}" style="width: 100%; height: 400px; object-fit: cover;">
+                    {% else %}
+                    <img src="https://via.placeholder.com/500x400/dee2e6/6c757d?text=No+Image" class="img-fluid rounded-start" alt="{{ product.name }}">
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <div class="card-body">
+                        <h1 class="card-title h3">{{ product.name }}</h1>
+                        <div class="mb-3">
+                            <span class="badge bg-secondary me-1">{{ product.category }}</span>
+                            <span class="badge bg-info">{{ product.season }}</span>
+                        </div>
+                        <p class="card-text fs-4 fw-bold text-primary mb-3">Rs. {{ product.price }}</p>
+                        
+                        <!-- Rating Display -->
+                        <div class="mb-3">
+                            {% if product.average_rating > 0 %}
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-2">
+                                    {% for i in "12345" %}
+                                    {% if forloop.counter <= product.average_rating %}
+                                    <i class="fas fa-star text-warning"></i>
+                                    {% elif forloop.counter <= product.average_rating|add:0.5 %}
+                                    <i class="fas fa-star-half-alt text-warning"></i>
+                                    {% else %}
+                                    <i class="far fa-star text-warning"></i>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="text-muted">{{ product.average_rating }}/5 ({{ product.rating_count }} review{{ product.rating_count|pluralize }})</span>
+                            </div>
+                            <a href="{% url 'store:product_ratings' product.id %}" class="btn btn-sm btn-outline-info">
+                                 <i class="fas fa-comments me-1"></i>View All Reviews
+                             </a>
+                             {% else %}
+                             <div class="text-muted mb-2">
+                                 <i class="far fa-star me-1"></i>No ratings yet
+                             </div>
+                             {% endif %}
+                             
+                             <!-- Rating Action Button -->
+                             {% if can_rate %}
+                             <div class="mt-2">
+                                 <a href="{% url 'store:rate_product' product.id %}" class="btn btn-sm btn-warning">
+                                     <i class="fas fa-star me-1"></i>
+                                     {% if user_rating %}Update Your Rating{% else %}Rate This Product{% endif %}
+                                 </a>
+                             </div>
+                             {% endif %}
+                        </div>
+                        
+                        <p class="card-text">{{ product.description }}</p>
+                        
+                        <!-- Size Selection -->
+                        {% if available_sizes %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Size:</label>
+                            <div class="size-selector">
+                                {% for product_size in available_sizes %}
+                                {% if product_size.stock > 0 %}
+                                <input type="radio" class="btn-check" name="selected_size" id="size_{{ product_size.size.id }}" value="{{ product_size.size.id }}" autocomplete="off">
+                                <label class="btn btn-outline-secondary btn-sm me-2 mb-2" for="size_{{ product_size.size.id }}">
+                                    {{ product_size.size.name }}
+                                    <small class="d-block text-muted">{{ product_size.stock }} left</small>
+                                </label>
+                                {% else %}
+                                <label class="btn btn-outline-secondary btn-sm me-2 mb-2 disabled" style="opacity: 0.5; cursor: not-allowed;">
+                                    {{ product_size.size.name }}
+                                    <small class="d-block text-danger">Out of Stock</small>
+                                </label>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted">Please select a size before adding to cart</small>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Quantity Selection -->
+                        <div class="mb-3 text-center">
+                            <label class="form-label fw-bold d-block mb-2">Quantity:</label>
+                            <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="decreaseQty" style="width: 40px; height: 40px;">-</button>
+                                <input type="number" class="form-control text-center fw-bold" id="quantityInput" value="1" min="1" style="width: 80px; height: 40px; font-size: 16px;" {% if product.total_stock == 0 %}disabled{% endif %}>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="increaseQty" style="width: 40px; height: 40px;">+</button>
+                            </div>
+                            <div class="text-center">
+                                <small class="text-muted d-block" id="stockInfo">
+                                    {% if available_sizes %}
+                                        Select size to see stock
+                                    {% else %}
+                                        {{ product.total_stock }} in stock
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <!-- Stock Warning Alert -->
+                            <div class="alert alert-warning mt-2" id="stockWarning" style="display: none;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <span id="stockWarningText">Quantity exceeds available stock!</span>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        {% if product.total_stock > 0 %}
+                        <!-- Add to Cart and Buy Now buttons -->
+                        <div class="d-flex gap-2 mb-3">
+                            <form method="POST" action="{% url 'store:add_to_cart' product.id %}" class="flex-grow-1" id="addToCartForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="size_id" id="selectedSizeInput">
+                                <input type="hidden" name="quantity" id="selectedQuantityInput" value="1">
+                                <button type="submit" class="btn btn-primary w-100" id="addToCartBtn" {% if available_sizes %}disabled{% endif %}>Add to Cart</button>
+                            </form>
+                            <form method="POST" action="{% url 'store:buy_now' product.id %}" class="flex-grow-1" id="buyNowForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="size_id" id="selectedSizeBuyNow">
+                                <input type="hidden" name="quantity" id="selectedQuantityBuyNow" value="1">
+                                <button type="submit" class="btn btn-success w-100" id="buyNowBtn" {% if available_sizes %}disabled{% endif %}>Buy Now</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <!-- Out of Stock - Show Wishlist Only -->
+                        <div class="alert alert-danger mb-3">
+                            <i class="fas fa-times-circle me-2"></i>
+                            <strong>Out of Stock</strong> - This product is currently unavailable for purchase.
+                        </div>
+                        <!-- Disabled buttons for out of stock -->
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="button" class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-shopping-cart me-2"></i>Out of Stock
+                            </button>
+                            <button type="button" class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-shopping-bag me-2"></i>Out of Stock
+                            </button>
+                        </div>
+                        {% endif %}
+                        <div class="d-grid">
+                            <form method="POST" action="{% url 'store:toggle_wishlist' product.id %}" class="mb-3">
+                                {% csrf_token %}
+                                {% if product in wishlist_products %}
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="fas fa-heart"></i> Remove from Wishlist
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <i class="far fa-heart"></i> Add to Wishlist
+                                </button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Information -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Product Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Category:</span>
+                        <span class="fw-bold">{{ product.category.name }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Gender:</span>
+                        <span class="fw-bold">{{ product.category.parent.name }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Season:</span>
+                        <span class="fw-bold">{{ product.season.name }}</span>
+                    </li>
+                    {% if product.tags %}
+                    <li class="list-group-item">
+                        <span>Tags:</span>
+                        <div class="mt-1">
+                            {% for tag in product.tag_list %}
+                            <span class="badge bg-dark me-1">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </li>
+                    {% endif %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Added on:</span>
+                        <span class="fw-bold">{{ product.created_at|date:"F d, Y" }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Shipping Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-truck me-2"></i> Free shipping on orders over Rs.5000
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-undo me-2"></i> Free returns within 30 days
+                    </li>
+                    <li>
+                        <i class="fas fa-shield-alt me-2"></i> 1-year warranty
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    {% if related_products %}
+    <div class="col-12 mt-5">
+        <h2 class="mb-4">Related Products</h2>
+        <div class="row">
+            {% for product in related_products %}
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 shadow-sm">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <img src="https://via.placeholder.com/300x200/dee2e6/6c757d?text=No+Image" class="card-img-top" alt="{{ product.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text small text-muted">
+                            <span class="badge bg-secondary me-1">{{ product.category }}</span>
+                            <span class="badge bg-info">{{ product.season }}</span>
+                        </p>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-primary">Rs. {{ product.price }}</span>
+                        <a href="{% url 'store:product_detail' product.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Cache buster: {% now "U" %}
+console.log('Product detail script loaded');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded');
+    const sizeRadios = document.querySelectorAll('input[name="selected_size"]');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const buyNowBtn = document.getElementById('buyNowBtn');
+    const selectedSizeInput = document.getElementById('selectedSizeInput');
+    const selectedSizeBuyNow = document.getElementById('selectedSizeBuyNow');
+    const quantityInput = document.getElementById('quantityInput');
+    const selectedQuantityInput = document.getElementById('selectedQuantityInput');
+    const selectedQuantityBuyNow = document.getElementById('selectedQuantityBuyNow');
+    const decreaseBtn = document.getElementById('decreaseQty');
+    const increaseBtn = document.getElementById('increaseQty');
+    const stockInfo = document.getElementById('stockInfo');
+    
+    // Store size stock data
+    const sizeStockData = {
+        {% for product_size in available_sizes %}
+        {% if product_size.stock > 0 %}
+        '{{ product_size.size.id }}': {{ product_size.stock }},
+        {% endif %}
+        {% endfor %}
+    };
+    
+    let currentMaxStock = {% if available_sizes %}{{ available_sizes.0.stock|default:1 }}{% else %}{{ product.total_stock }}{% endif %};
+    
+    // Update currentMaxStock with the highest available stock if sizes exist
+    {% if available_sizes %}
+    const stockValues = Object.values(sizeStockData);
+    if (stockValues.length > 0) {
+        currentMaxStock = Math.max(...stockValues);
+    }
+    {% endif %}
+    
+    // Handle size selection
+    sizeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                const sizeId = this.value;
+                const stock = sizeStockData[sizeId] || 0;
+                
+                // Update max stock and quantity input
+                currentMaxStock = stock;
+                quantityInput.max = stock;
+                
+                // Reset quantity to 1 if current quantity exceeds stock
+                if (parseInt(quantityInput.value) > stock) {
+                    quantityInput.value = 1;
+                    updateQuantityInputs();
+                }
+                
+                // Update stock info
+                stockInfo.textContent = `${stock} available`;
+                
+                // Enable/disable buttons and controls based on stock
+                const hasStock = stock > 0;
+                if (addToCartBtn) addToCartBtn.disabled = !hasStock;
+                if (buyNowBtn) buyNowBtn.disabled = !hasStock;
+                
+                // Enable/disable quantity controls
+                if (quantityInput) quantityInput.disabled = !hasStock;
+                if (decreaseBtn) decreaseBtn.disabled = !hasStock || parseInt(quantityInput.value) <= 1;
+                if (increaseBtn) increaseBtn.disabled = !hasStock || parseInt(quantityInput.value) >= stock;
+                
+                // Hide warning if stock is available
+                if (hasStock) {
+                    hideStockWarning();
+                } else {
+                    showStockWarning('This size is out of stock!');
+                }
+                
+                // Set hidden input values
+                if (selectedSizeInput) selectedSizeInput.value = this.value;
+                if (selectedSizeBuyNow) selectedSizeBuyNow.value = this.value;
+            }
+        });
+    });
+    
+    // Stock warning functions
+    function showStockWarning(message) {
+        const stockWarning = document.getElementById('stockWarning');
+        const stockWarningText = document.getElementById('stockWarningText');
+        if (stockWarning && stockWarningText) {
+            stockWarningText.textContent = message;
+            stockWarning.style.display = 'block';
+        }
+    }
+    
+    function hideStockWarning() {
+        const stockWarning = document.getElementById('stockWarning');
+        if (stockWarning) {
+            stockWarning.style.display = 'none';
+        }
+    }
+    
+    // Quantity control functions
+    function updateQuantityInputs() {
+        const qty = quantityInput.value;
+        if (selectedQuantityInput) selectedQuantityInput.value = qty;
+        if (selectedQuantityBuyNow) selectedQuantityBuyNow.value = qty;
+    }
+    
+    function updateQuantityButtons() {
+        const qty = parseInt(quantityInput.value);
+        if (decreaseBtn) decreaseBtn.disabled = qty <= 1;
+        if (increaseBtn) increaseBtn.disabled = qty >= currentMaxStock;
+    }
+    
+    // Handle quantity input changes
+    if (quantityInput) {
+        quantityInput.addEventListener('input', function() {
+            let value = parseInt(this.value);
+            
+            // Validate quantity
+            if (isNaN(value) || value < 1) {
+                value = 1;
+                hideStockWarning();
+            } else if (value > currentMaxStock) {
+                showStockWarning(`Only ${currentMaxStock} items available!`);
+                value = currentMaxStock;
+            } else {
+                hideStockWarning();
+            }
+            
+            this.value = value;
+            updateQuantityInputs();
+            updateQuantityButtons();
+        });
+        
+        // Handle manual typing and prevent invalid input
+        quantityInput.addEventListener('keydown', function(e) {
+            // Allow: backspace, delete, tab, escape, enter
+            if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
+                // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true) ||
+                // Allow: home, end, left, right
+                (e.keyCode >= 35 && e.keyCode <= 39)) {
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+        
+        // Handle paste events
+        quantityInput.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                let value = parseInt(this.value);
+                if (isNaN(value) || value < 1) {
+                    this.value = 1;
+                } else if (value > currentMaxStock) {
+                    this.value = currentMaxStock;
+                    showStockWarning(`Maximum stock available is ${currentMaxStock}.`);
+                }
+                updateQuantityInputs();
+                updateQuantityButtons();
+            }, 10);
+        });
+    }
+    
+    // Handle decrease quantity
+    if (decreaseBtn) {
+        decreaseBtn.addEventListener('click', function() {
+            const currentQty = parseInt(quantityInput.value);
+            if (currentQty > 1) {
+                quantityInput.value = currentQty - 1;
+                updateQuantityInputs();
+                updateQuantityButtons();
+            }
+        });
+    }
+    
+    // Handle increase quantity
+    if (increaseBtn) {
+        increaseBtn.addEventListener('click', function() {
+            const currentQty = parseInt(quantityInput.value);
+            if (currentQty < currentMaxStock) {
+                quantityInput.value = currentQty + 1;
+                updateQuantityInputs();
+                updateQuantityButtons();
+                hideStockWarning();
+            }
+        });
+    }
+    
+    // Initialize quantity input max value
+    if (quantityInput) {
+        quantityInput.max = currentMaxStock;
+    }
+    
+
+    
+    // Initialize quantity buttons state
+    console.log('Initializing quantity controls, currentMaxStock:', currentMaxStock);
+    updateQuantityButtons();
+    updateQuantityInputs();
+    console.log('Quantity controls initialized');
+    
+    // Disable quantity controls for out of stock products
+    if (currentMaxStock === 0) {
+        if (quantityInput) quantityInput.disabled = true;
+        if (decreaseBtn) decreaseBtn.disabled = true;
+        if (increaseBtn) increaseBtn.disabled = true;
+        if (addToCartBtn) addToCartBtn.disabled = true;
+        if (buyNowBtn) buyNowBtn.disabled = true;
+    }
+    
+    // Prevent form submission if no size selected (for products with sizes)
+    const addToCartForm = document.getElementById('addToCartForm');
+    const buyNowForm = document.getElementById('buyNowForm');
+    
+    if (addToCartForm && sizeRadios.length > 0) {
+        addToCartForm.addEventListener('submit', function(e) {
+            const selectedSize = document.querySelector('input[name="selected_size"]:checked');
+            if (!selectedSize) {
+                e.preventDefault();
+                alert('Please select a size before adding to cart.');
+                return;
+            }
+            
+            // Check if selected size has stock
+            const sizeId = selectedSize.value;
+            const stock = sizeStockData[sizeId] || 0;
+            if (stock === 0) {
+                e.preventDefault();
+                alert('Selected size is out of stock. Please choose a different size.');
+                return;
+            }
+            
+            // Check quantity doesn't exceed stock
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > stock) {
+                e.preventDefault();
+                alert(`Only ${stock} items available for this size. Please reduce the quantity.`);
+                return;
+            }
+        });
+    }
+    
+    if (buyNowForm && sizeRadios.length > 0) {
+        buyNowForm.addEventListener('submit', function(e) {
+            const selectedSize = document.querySelector('input[name="selected_size"]:checked');
+            if (!selectedSize) {
+                e.preventDefault();
+                alert('Please select a size before proceeding.');
+                return;
+            }
+            
+            // Check if selected size has stock
+            const sizeId = selectedSize.value;
+            const stock = sizeStockData[sizeId] || 0;
+            if (stock === 0) {
+                e.preventDefault();
+                alert('Selected size is out of stock. Please choose a different size.');
+                return;
+            }
+            
+            // Check quantity doesn't exceed stock
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > stock) {
+                e.preventDefault();
+                alert(`Only ${stock} items available for this size. Please reduce the quantity.`);
+                return;
+            }
+        });
+    }
+    
+    // For products without sizes, still validate stock
+    if (addToCartForm && sizeRadios.length === 0) {
+        addToCartForm.addEventListener('submit', function(e) {
+            if (currentMaxStock === 0) {
+                e.preventDefault();
+                alert('This product is out of stock.');
+                return;
+            }
+            
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > currentMaxStock) {
+                e.preventDefault();
+                alert(`Only ${currentMaxStock} items available. Please reduce the quantity.`);
+                return;
+            }
+        });
+    }
+    
+    if (buyNowForm && sizeRadios.length === 0) {
+        buyNowForm.addEventListener('submit', function(e) {
+            if (currentMaxStock === 0) {
+                e.preventDefault();
+                alert('This product is out of stock.');
+                return;
+            }
+            
+            const quantity = parseInt(quantityInput.value);
+            if (quantity > currentMaxStock) {
+                e.preventDefault();
+                alert(`Only ${currentMaxStock} items available. Please reduce the quantity.`);
+                return;
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

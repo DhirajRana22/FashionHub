@@ -1,0 +1,277 @@
+{% extends 'store/base.html' %}
+
+{% block title %}{{ product.name }} Reviews - FashionHub{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rating-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 30px;
+    }
+    
+    .rating-summary {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .rating-overview {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .average-rating {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #ffd700;
+        margin-bottom: 10px;
+    }
+    
+    .rating-stars {
+        font-size: 1.5rem;
+        color: #ffd700;
+        margin-bottom: 10px;
+    }
+    
+    .rating-distribution {
+        padding: 20px;
+    }
+    
+    .distribution-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .star-label {
+        width: 60px;
+        font-weight: 600;
+    }
+    
+    .progress-bar-container {
+        flex: 1;
+        margin: 0 15px;
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #ffd700, #ffed4e);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+    
+    .count-label {
+        width: 40px;
+        text-align: right;
+        font-weight: 600;
+        color: #6c757d;
+    }
+    
+    .review-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .review-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .reviewer-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .reviewer-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-right: 15px;
+    }
+    
+    .reviewer-details h6 {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .review-date {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .review-rating {
+        color: #ffd700;
+        margin-bottom: 10px;
+    }
+    
+    .review-text {
+        line-height: 1.6;
+        color: #495057;
+    }
+    
+    .no-reviews {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .no-reviews i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        color: #e9ecef;
+    }
+    
+    .product-info {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Product Information -->
+    <div class="product-info" data-aos="fade-up">
+        <div class="row align-items-center">
+            <div class="col-md-2">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" class="img-fluid rounded" alt="{{ product.name }}" style="width: 100%; height: 80px; object-fit: cover;">
+                {% else %}
+                <img src="https://via.placeholder.com/80x80/dee2e6/6c757d?text=No+Image" class="img-fluid rounded" alt="{{ product.name }}">
+                {% endif %}
+            </div>
+            <div class="col-md-8">
+                <h4 class="mb-2">{{ product.name }}</h4>
+                <p class="text-muted mb-1">{{ product.category.name }} • {{ product.season.name }}</p>
+                <p class="text-primary fw-bold mb-0">Rs. {{ product.price }}</p>
+            </div>
+            <div class="col-md-2 text-end">
+                <a href="{% url 'store:product_detail' product.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Product
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating Header -->
+    <div class="rating-header" data-aos="fade-up" data-aos-delay="100">
+        <div class="text-center">
+            <h1 class="mb-3">Customer Reviews</h1>
+            <p class="lead mb-0">See what our customers are saying about this product</p>
+        </div>
+    </div>
+
+    {% if rating_count > 0 %}
+    <!-- Rating Summary -->
+    <div class="rating-summary" data-aos="fade-up" data-aos-delay="200">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="rating-overview">
+                    <div class="average-rating">{{ average_rating|floatformat:1 }}</div>
+                    <div class="rating-stars">
+                        {% for i in "12345" %}
+                        {% if forloop.counter <= average_rating %}
+                        <i class="fas fa-star"></i>
+                        {% elif forloop.counter <= average_rating|add:0.5 %}
+                        <i class="fas fa-star-half-alt"></i>
+                        {% else %}
+                        <i class="far fa-star"></i>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    <p class="mb-0">Based on {{ rating_count }} review{{ rating_count|pluralize }}</p>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="rating-distribution">
+                    <h6 class="mb-3">Rating Distribution</h6>
+                    {% for star, count in rating_distribution.items %}
+                    <div class="distribution-row">
+                        <div class="star-label">{{ star }} star{{ star|pluralize }}</div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: {% if rating_count > 0 %}{% widthratio count rating_count 100 %}{% else %}0{% endif %}%"></div>
+                        </div>
+                        <div class="count-label">{{ count }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Individual Reviews -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="mb-4" data-aos="fade-up">All Reviews ({{ rating_count }})</h3>
+            {% for rating in ratings %}
+            <div class="review-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:200 }}">
+                <div class="reviewer-info">
+                    <div class="reviewer-avatar">
+                        {{ rating.user.first_name|first|default:rating.user.username|first|upper }}
+                    </div>
+                    <div class="reviewer-details">
+                        <h6>{{ rating.user.first_name|default:rating.user.username }}</h6>
+                        <div class="review-date">{{ rating.created_at|date:"F j, Y" }}</div>
+                    </div>
+                    <div class="ms-auto">
+                        <div class="review-rating">
+                            {% for i in "12345" %}
+                            {% if forloop.counter <= rating.rating %}
+                            <i class="fas fa-star"></i>
+                            {% else %}
+                            <i class="far fa-star"></i>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% if rating.review %}
+                <div class="review-text">
+                    {{ rating.review|linebreaks }}
+                </div>
+                {% else %}
+                <div class="review-text text-muted fst-italic">
+                    No written review provided.
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- No Reviews -->
+    <div class="no-reviews" data-aos="fade-up" data-aos-delay="200">
+        <i class="fas fa-star"></i>
+        <h3>No Reviews Yet</h3>
+        <p class="mb-4">Be the first to review this product and help other customers make informed decisions.</p>
+        <a href="{% url 'store:product_detail' product.id %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Product
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

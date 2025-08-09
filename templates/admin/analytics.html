@@ -1,0 +1,476 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Analytics - FashionHub Admin{% endblock %}
+{% block page_title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<!-- Date Range Filter -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex gap-2">
+            <select name="period" class="form-select" style="min-width: 150px;">
+                <option value="7" {% if request.GET.period == '7' %}selected{% endif %}>Last 7 Days</option>
+                <option value="30" {% if request.GET.period == '30' or not request.GET.period %}selected{% endif %}>Last 30 Days</option>
+                <option value="90" {% if request.GET.period == '90' %}selected{% endif %}>Last 3 Months</option>
+                <option value="365" {% if request.GET.period == '365' %}selected{% endif %}>Last Year</option>
+                <option value="custom" {% if request.GET.period == 'custom' %}selected{% endif %}>Custom Range</option>
+            </select>
+            <input type="date" name="start_date" class="form-control" value="{{ request.GET.start_date }}" {% if request.GET.period != 'custom' %}style="display: none;"{% endif %}>
+            <input type="date" name="end_date" class="form-control" value="{{ request.GET.end_date }}" {% if request.GET.period != 'custom' %}style="display: none;"{% endif %}>
+            <button type="submit" class="btn btn-admin btn-primary">
+                <i class="fas fa-chart-line me-2"></i>Update
+            </button>
+        </form>
+    </div>
+    <div class="col-md-6 text-end">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-admin btn-outline-success" onclick="exportAnalytics()">
+                <i class="fas fa-download me-2"></i>Export Report
+            </button>
+            <button type="button" class="btn btn-admin btn-outline-info" onclick="refreshAnalytics()">
+                <i class="fas fa-sync-alt me-2"></i>Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="card-body">
+                <i class="fas fa-rupee-sign fa-2x text-success mb-2"></i>
+                <h4 class="mb-1">Rs.{{ total_revenue|floatformat:0 }}</h4>
+                <small class="text-muted">Total Revenue</small>
+                <div class="mt-2">
+                    {% if revenue_growth >= 0 %}
+                        <span class="badge bg-success"><i class="fas fa-arrow-up"></i> {{ revenue_growth|floatformat:1 }}%</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-arrow-down"></i> {{ revenue_growth|floatformat:1 }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="card-body">
+                <i class="fas fa-shopping-cart fa-2x text-primary mb-2"></i>
+                <h4 class="mb-1">{{ total_orders }}</h4>
+                <small class="text-muted">Total Orders</small>
+                <div class="mt-2">
+                    {% if orders_growth >= 0 %}
+                        <span class="badge bg-success"><i class="fas fa-arrow-up"></i> {{ orders_growth|floatformat:1 }}%</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-arrow-down"></i> {{ orders_growth|floatformat:1 }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="card-body">
+                <i class="fas fa-users fa-2x text-info mb-2"></i>
+                <h4 class="mb-1">{{ new_customers }}</h4>
+                <small class="text-muted">New Customers</small>
+                <div class="mt-2">
+                    {% if customers_growth >= 0 %}
+                        <span class="badge bg-success"><i class="fas fa-arrow-up"></i> {{ customers_growth|floatformat:1 }}%</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-arrow-down"></i> {{ customers_growth|floatformat:1 }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="card-body">
+                <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                <h4 class="mb-1">Rs.{{ avg_order_value|floatformat:0 }}</h4>
+                <small class="text-muted">Avg Order Value</small>
+                <div class="mt-2">
+                    {% if aov_growth >= 0 %}
+                        <span class="badge bg-success"><i class="fas fa-arrow-up"></i> {{ aov_growth|floatformat:1 }}%</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-arrow-down"></i> {{ aov_growth|floatformat:1 }}%</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <!-- Sales Overview Chart -->
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-area me-2"></i>Sales Overview
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Status Distribution -->
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-pie me-2"></i>Order Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="orderStatusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <!-- Top Selling Products -->
+    <div class="col-lg-6">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-trophy me-2"></i>Top Selling Products
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topProductsChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category Performance -->
+    <div class="col-lg-6">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-tags me-2"></i>Category Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Tables -->
+<div class="row mb-4">
+    <!-- Top Products Table -->
+    <div class="col-lg-6">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-list me-2"></i>Top Products by Revenue
+                </h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Sales</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in top_products %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                    {% endif %}
+                                    <div>
+                                        <strong>{{ product.name|truncatechars:30 }}</strong>
+                                        <br><small class="text-muted">{{ product.category.name }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ product.total_sold }}</td>
+                            <td><strong>Rs.{{ product.total_revenue|floatformat:0 }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No data available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customer Insights -->
+    <div class="col-lg-6">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-user-friends me-2"></i>Customer Insights
+                </h5>
+            </div>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Total Customers:</span>
+                    <strong>{{ total_customers }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Repeat Customers:</span>
+                    <strong>{{ repeat_customers }} ({{ repeat_customer_rate|floatformat:1 }}%)</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Customer Lifetime Value:</span>
+                    <strong>Rs.{{ customer_lifetime_value|floatformat:0 }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Avg Orders per Customer:</span>
+                    <strong>{{ avg_orders_per_customer|floatformat:1 }}</strong>
+                </div>
+                <div class="list-group-item d-flex justify-content-between">
+                    <span>Customer Acquisition Cost:</span>
+                    <strong>Rs.{{ customer_acquisition_cost|floatformat:0 }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="admin-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-tachometer-alt me-2"></i>Performance Metrics
+                </h5>
+            </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="text-center p-3">
+                        <h4 class="text-primary">{{ conversion_rate|floatformat:1 }}%</h4>
+                        <small class="text-muted">Conversion Rate</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3">
+                        <h4 class="text-success">{{ cart_abandonment_rate|floatformat:1 }}%</h4>
+                        <small class="text-muted">Cart Abandonment</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3">
+                        <h4 class="text-info">{{ return_rate|floatformat:1 }}%</h4>
+                        <small class="text-muted">Return Rate</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3">
+                        <h4 class="text-warning">{{ avg_delivery_time|floatformat:1 }}</h4>
+                        <small class="text-muted">Avg Delivery (days)</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3">
+                        <h4 class="text-danger">{{ customer_satisfaction|floatformat:1 }}/5</h4>
+                        <small class="text-muted">Customer Rating</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3">
+                        <h4 class="text-secondary">{{ inventory_turnover|floatformat:1 }}</h4>
+                        <small class="text-muted">Inventory Turnover</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sales Overview Chart
+const salesCtx = document.getElementById('salesChart').getContext('2d');
+const salesChart = new Chart(salesCtx, {
+    type: 'line',
+    data: {
+        labels: {{ sales_labels|safe }},
+        datasets: [{
+            label: 'Revenue',
+            data: {{ sales_data|safe }},
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4,
+            fill: true
+        }, {
+            label: 'Orders',
+            data: {{ orders_data|safe }},
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4,
+            yAxisID: 'y1'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Revenue (Rs.)'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Orders'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                },
+            }
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        }
+    }
+});
+
+// Order Status Chart
+const statusCtx = document.getElementById('orderStatusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ status_labels|safe }},
+        datasets: [{
+            data: {{ status_data|safe }},
+            backgroundColor: [
+                '#ffc107', // pending - warning
+                '#17a2b8', // confirmed - info
+                '#007bff', // shipped - primary
+                '#28a745', // delivered - success
+                '#dc3545'  // cancelled - danger
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Top Products Chart
+const productsCtx = document.getElementById('topProductsChart').getContext('2d');
+const productsChart = new Chart(productsCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ product_labels|safe }},
+        datasets: [{
+            label: 'Units Sold',
+            data: {{ product_data|safe }},
+            backgroundColor: '#007bff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Category Chart
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+const categoryChart = new Chart(categoryCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ category_labels|safe }},
+        datasets: [{
+            label: 'Revenue',
+            data: {{ category_data|safe }},
+            backgroundColor: '#28a745'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Period selector handler
+document.querySelector('select[name="period"]').addEventListener('change', function() {
+    const customInputs = document.querySelectorAll('input[name="start_date"], input[name="end_date"]');
+    if (this.value === 'custom') {
+        customInputs.forEach(input => input.style.display = 'block');
+    } else {
+        customInputs.forEach(input => input.style.display = 'none');
+    }
+});
+
+function exportAnalytics() {
+    // Get current filters
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'pdf');
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = window.location.pathname + '?' + params.toString();
+    link.download = 'analytics-report.pdf';
+    link.click();
+}
+
+function refreshAnalytics() {
+    window.location.reload();
+}
+
+// Auto-refresh every 5 minutes
+setInterval(function() {
+    if (document.visibilityState === 'visible') {
+        refreshAnalytics();
+    }
+}, 300000); // 5 minutes
+</script>
+{% endblock %}

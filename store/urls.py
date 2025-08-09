@@ -24,13 +24,24 @@ urlpatterns = [
     # Checkout and Order URLs
     path('checkout/', views.checkout, name='checkout'),
     path('order/success/<int:order_id>/', views.order_success, name='order_success'),
+    path('khalti-callback/', views.khalti_callback, name='khalti_callback'),
+    
+    # User Account Management
+    path('my-account/', views.my_account, name='my_account'),
     
     # User Order Management
     path('my-orders/', views.my_orders, name='my_orders'),
-    path('order/cancel/<int:order_id>/', views.cancel_order, name='cancel_order'),
-    path('order/confirm-receipt/<int:order_id>/', views.confirm_order_receipt, name='confirm_receipt'),
+    path('cancel-order/<int:order_id>/', views.cancel_order, name='cancel_order'),
+    path('confirm-receipt/<int:order_id>/', views.confirm_order_receipt, name='confirm_receipt'),
+    path('rate-product/<int:product_id>/', views.rate_product, name='rate_product'),
+    path('product-ratings/<int:product_id>/', views.product_ratings, name='product_ratings'),
     
     # Wishlist URLs
     path('wishlist/', views.wishlist_view, name='wishlist'),
     path('wishlist/toggle/<int:product_id>/', views.toggle_wishlist, name='toggle_wishlist'),
-] 
+    # API endpoint for chatbot product search
+    path('api/products/', views.api_product_search, name='api_product_search'),
+    
+    # Contact page
+    path('contact/', views.contact_view, name='contact'),
+]

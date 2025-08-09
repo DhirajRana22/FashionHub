@@ -1,0 +1,203 @@
+{% extends 'store/base.html' %}
+{% load static %}
+
+{% block title %}Contact Us - FashionHub{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h2 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i>Contact Us
+                    </h2>
+                    <p class="mb-0 mt-2">We'd love to hear from you! Send us a message and we'll respond as soon as possible.</p>
+                </div>
+                <div class="card-body p-5">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" id="contactForm">
+                        {% csrf_token %}
+                        
+                        {% if user.is_authenticated %}
+                            <!-- For logged-in users, use ContactForm (saves to UserMessage) -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">
+                                            <i class="fas fa-user me-2"></i>Your Name
+                                        </label>
+                                        <input type="text" class="form-control" value="{{ user.get_full_name|default:user.username }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">
+                                            <i class="fas fa-envelope me-2"></i>Your Email
+                                        </label>
+                                        <input type="email" class="form-control" value="{{ user.email }}" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="{{ form.message.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-comment me-2"></i>Your Message *
+                                </label>
+                                {{ form.message }}
+                                {% if form.message.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.message.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <!-- For anonymous users, use GeneralContactForm -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
+                                            <i class="fas fa-user me-2"></i>Your Name *
+                                        </label>
+                                        {{ form.name }}
+                                        {% if form.name.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.name.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.email.id_for_label }}" class="form-label fw-bold">
+                                            <i class="fas fa-envelope me-2"></i>Your Email *
+                                        </label>
+                                        {{ form.email }}
+                                        {% if form.email.errors %}
+                                            <div class="text-danger mt-1">
+                                                {% for error in form.email.errors %}
+                                                    <small>{{ error }}</small>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="{{ form.subject.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-tag me-2"></i>Subject *
+                                </label>
+                                {{ form.subject }}
+                                {% if form.subject.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.subject.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group mb-4">
+                                <label for="{{ form.message.id_for_label }}" class="form-label fw-bold">
+                                    <i class="fas fa-comment me-2"></i>Your Message *
+                                </label>
+                                {{ form.message }}
+                                {% if form.message.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.message.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contact Information Section -->
+    <div class="row mt-5">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 text-center border-0 shadow">
+                <div class="card-body p-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-map-marker-alt fa-lg"></i>
+                    </div>
+                    <h5 class="card-title">Our Address</h5>
+                    <p class="card-text text-muted">123 Fashion Street<br>Kathmandu, Nepal<br>44600</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 text-center border-0 shadow">
+                <div class="card-body p-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-phone fa-lg"></i>
+                    </div>
+                    <h5 class="card-title">Call Us</h5>
+                    <p class="card-text text-muted">+977-1-4567890<br>+977-9876543210<br>Mon - Fri, 9AM - 6PM</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 text-center border-0 shadow">
+                <div class="card-body p-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-envelope fa-lg"></i>
+                    </div>
+                    <h5 class="card-title">Email Us</h5>
+                    <p class="card-text text-muted">info@fashionhub.com<br>support@fashionhub.com<br>We reply within 24 hours</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0b5ed7, #0a58ca);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+</style>
+{% endblock %}

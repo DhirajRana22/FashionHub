@@ -1,0 +1,174 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Products - FashionHub Admin{% endblock %}
+{% block page_title %}Product Management{% endblock %}
+
+{% block content %}
+<!-- Header with Add Button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-box me-2"></i>Products</h2>
+    <a href="{% url 'custom_admin:product_add' %}" class="btn btn-admin btn-primary">
+        <i class="fas fa-plus me-2"></i>Add New Product
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="admin-card mb-4">
+    <form method="GET" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Search Products</label>
+            <input type="text" name="search" class="form-control" placeholder="Search by name, description, or tags" value="{{ search_query }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id|stringformat:"s" == category_filter %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Season</label>
+            <select name="season" class="form-select">
+                <option value="">All Seasons</option>
+                {% for season in seasons %}
+                    <option value="{{ season.id }}" {% if season.id|stringformat:"s" == season_filter %}selected{% endif %}>
+                        {{ season.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-admin btn-primary me-2">
+                <i class="fas fa-search"></i>
+            </button>
+            <a href="{% url 'custom_admin:products' %}" class="btn btn-admin btn-secondary">
+                <i class="fas fa-times"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Products Table -->
+<div class="admin-card">
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Season</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Featured</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in page_obj %}
+                <tr>
+                    <td>
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 4px;">
+                                <i class="fas fa-image text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ product.name }}</strong><br>
+                        <small class="text-muted">{{ product.description|truncatechars:50 }}</small>
+                    </td>
+                    <td>{{ product.category.name }}</td>
+                    <td>{{ product.season.name }}</td>
+                    <td>Rs.{{ product.price }}</td>
+                    <td>
+                        {% if product.stock < 10 %}
+                            <span class="badge bg-danger">{{ product.stock }}</span>
+                        {% elif product.stock < 50 %}
+                            <span class="badge bg-warning">{{ product.stock }}</span>
+                        {% else %}
+                            <span class="badge bg-success">{{ product.stock }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if product.featured %}
+                            <span class="badge bg-primary">Featured</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Regular</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ product.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'custom_admin:product_edit' product.id %}" class="btn btn-admin btn-warning btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'custom_admin:product_delete' product.id %}" class="btn btn-admin btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this product?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                        No products found
+                        {% if search_query or category_filter or season_filter %}
+                            <br><small>Try adjusting your filters</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div>
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} products
+        </div>
+        <nav>
+            <ul class="pagination mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if category_filter %}category={{ category_filter }}&{% endif %}{% if season_filter %}season={{ season_filter }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if category_filter %}category={{ category_filter }}&{% endif %}{% if season_filter %}season={{ season_filter }}&{% endif %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if category_filter %}category={{ category_filter }}&{% endif %}{% if season_filter %}season={{ season_filter }}&{% endif %}page={{ page_obj.next_page_number }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

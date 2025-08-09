@@ -1,0 +1,224 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Categories - FashionHub Admin{% endblock %}
+{% block page_title %}Category Management{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <a href="{% url 'custom_admin:category_add' %}" class="btn btn-admin btn-primary">
+            <i class="fas fa-plus me-2"></i>Add New Category
+        </a>
+    </div>
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" placeholder="Search categories..." value="{{ request.GET.search }}">
+            <button type="submit" class="btn btn-admin btn-outline-primary">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="card-header">
+        <h5 class="card-title">
+            <i class="fas fa-tags me-2"></i>Categories ({{ categories.count }})
+        </h5>
+    </div>
+    
+    {% if categories %}
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Parent Category</th>
+                    <th>Inventory Count</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% if category.image %}
+                                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-tag text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ category.name }}</strong>
+                                {% if category.description %}
+                                    <br><small class="text-muted">{{ category.description|truncatechars:50 }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if category.parent %}
+                            <span class="badge bg-info">Subcategory</span>
+                        {% else %}
+                            <span class="badge bg-primary">Main Category</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if category.parent %}
+                            {{ category.parent.name }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ category.total_inventory|default:0 }}</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ category.created_at|date:"M d, Y" }}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'custom_admin:category_edit' category.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCategory({{ category.id }}, '{{ category.name }}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer">
+        <nav aria-label="Categories pagination">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">&laquo; First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Categories Found</h5>
+        <p class="text-muted">{% if request.GET.search %}No categories match your search criteria.{% else %}Start by adding your first category.{% endif %}</p>
+        <a href="{% url 'custom_admin:category_add' %}" class="btn btn-admin btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Category
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Category Hierarchy Overview -->
+{% if categories %}
+<div class="admin-card mt-4">
+    <div class="card-header">
+        <h5 class="card-title">
+            <i class="fas fa-sitemap me-2"></i>Category Hierarchy
+        </h5>
+    </div>
+    <div class="row">
+        {% for main_category in main_categories %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="border rounded p-3">
+                <h6 class="mb-2">
+                    <i class="fas fa-folder text-primary me-2"></i>{{ main_category.name }}
+                    <span class="badge bg-primary ms-2">{{ main_category.product_set.count }}</span>
+                </h6>
+                {% if main_category.children.exists %}
+                    <ul class="list-unstyled ms-3 mb-0">
+                        {% for subcategory in main_category.children.all %}
+                        <li class="mb-1">
+                            <i class="fas fa-folder-open text-info me-2"></i>{{ subcategory.name }}
+                            <span class="badge bg-info ms-2">{{ subcategory.product_set.count }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <small class="text-muted ms-3">No subcategories</small>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the category <strong id="categoryName"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All products in this category will need to be reassigned.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Category
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteCategory(categoryId, categoryName) {
+    document.getElementById('categoryName').textContent = categoryName;
+    document.getElementById('deleteForm').action = `/admin/categories/${categoryId}/delete/`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Auto-submit search form on Enter
+document.querySelector('input[name="search"]').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        this.form.submit();
+    }
+});
+</script>
+{% endblock %}

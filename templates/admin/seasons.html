@@ -1,0 +1,238 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+
+{% block title %}Seasons Management - FashionHub Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .season-card {
+        transition: transform 0.2s;
+    }
+    .season-card:hover {
+        transform: translateY(-2px);
+    }
+    .season-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    .spring { color: #28a745; }
+    .summer { color: #ffc107; }
+    .fall { color: #fd7e14; }
+    .winter { color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-calendar-alt"></i> Seasons Management</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSeasonModal">
+                    <i class="fas fa-plus"></i> Add Season
+                </button>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ total_seasons }}</h4>
+                                    <p class="mb-0">Total Seasons</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-calendar-alt fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ active_seasons }}</h4>
+                                    <p class="mb-0">Active Seasons</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ products_with_seasons }}</h4>
+                                    <p class="mb-0">Products with Seasons</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-tshirt fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ current_season_products }}</h4>
+                                    <p class="mb-0">Current Season Products</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-star fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seasons Grid -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">All Seasons</h5>
+                </div>
+                <div class="card-body">
+                    {% if seasons %}
+                        <div class="row">
+                            {% for season in seasons %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card season-card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="season-icon {{ season.name|lower }}">
+                                            {% if season.name == 'Spring' %}
+                                                <i class="fas fa-seedling"></i>
+                                            {% elif season.name == 'Summer' %}
+                                                <i class="fas fa-sun"></i>
+                                            {% elif season.name == 'Fall' %}
+                                                <i class="fas fa-leaf"></i>
+                                            {% elif season.name == 'Winter' %}
+                                                <i class="fas fa-snowflake"></i>
+                                            {% else %}
+                                                <i class="fas fa-calendar"></i>
+                                            {% endif %}
+                                        </div>
+                                        <h5 class="card-title">{{ season.name }}</h5>
+                                        {% if season.description %}
+                                            <p class="card-text text-muted">{{ season.description }}</p>
+                                        {% endif %}
+                                        <div class="mt-3">
+                                            <span class="badge bg-primary">{{ season.product_set.count }} Products</span>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button class="btn btn-sm btn-outline-primary me-2" 
+                                                    onclick="editSeason({{ season.id }}, '{{ season.name }}', '{{ season.description|default:'' }}')">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteSeason({{ season.id }}, '{{ season.name }}')">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No seasons found</h5>
+                            <p class="text-muted">Start by adding your first season.</p>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSeasonModal">
+                                <i class="fas fa-plus"></i> Add Season
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Season Modal -->
+<div class="modal fade" id="addSeasonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Season</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'custom_admin:season_add' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="seasonName" class="form-label">Season Name</label>
+                        <input type="text" class="form-control" id="seasonName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="seasonDescription" class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" id="seasonDescription" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Season</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteSeasonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the season "<span id="deleteSeasonName"></span>"?</p>
+                <p class="text-warning"><i class="fas fa-exclamation-triangle"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" id="deleteSeasonForm" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete Season</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editSeason(id, name, description) {
+    // Redirect to edit form instead of using modal
+    window.location.href = `/admin/seasons/${id}/edit/`;
+}
+
+function deleteSeason(id, name) {
+    document.getElementById('deleteSeasonName').textContent = name;
+    document.getElementById('deleteSeasonForm').action = `/admin/seasons/${id}/delete/`;
+    new bootstrap.Modal(document.getElementById('deleteSeasonModal')).show();
+}
+
+// Show success/error messages
+{% if messages %}
+    {% for message in messages %}
+        toastr.{{ message.tags }}('{{ message }}');
+    {% endfor %}
+{% endif %}
+</script>
+{% endblock %}

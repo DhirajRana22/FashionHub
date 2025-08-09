@@ -5,8 +5,8 @@ from decimal import Decimal
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from .models import (
-    Category, Season, Product, 
-    UserProfile, Order, OrderItem, Wishlist, UserMessage, Cart, CartItem, OrderStatusHistory
+    Category, Season, Product, Size, ProductSize,
+    UserProfile, Order, OrderItem, Wishlist, UserMessage, Cart, CartItem, OrderStatusHistory, ContactMessage, UserMessageReply, Rating
 )
 from django.utils.html import format_html
 from django.urls import reverse, path
@@ -14,6 +14,7 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 class ProductAdminForm(forms.ModelForm):
     class Meta:
@@ -28,6 +29,13 @@ class ProductAdminForm(forms.ModelForm):
         if price is not None and price < Decimal('0.01'):
             raise forms.ValidationError("Price must be at least 0.01.")
         return price
+
+class ProductSizeInline(admin.TabularInline):
+    model = ProductSize
+    extra = 1
+    fields = ('size', 'stock')
+    verbose_name = 'Size'
+    verbose_name_plural = 'Available Sizes'
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -55,17 +63,22 @@ class UserAdmin(BaseUserAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ('name', 'category', 'season', 'price', 'stock', 'featured', 'created_at')
-    list_filter = ('category', 'season', 'featured')
+    inlines = [ProductSizeInline]
+    list_display = ('name', 'category', 'season', 'price', 'total_stock_display', 'featured', 'created_at')
+    list_filter = ('category', 'season', 'featured', 'sizes')
     search_fields = ('name', 'description', 'tags')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'total_stock')
     
     fieldsets = (
         ('Product Information', {
-            'fields': ('name', 'description', 'price', 'stock', 'image', 'tags', 'featured')
+            'fields': ('name', 'description', 'price', 'image', 'tags', 'featured')
         }),
         ('Categories', {
             'fields': ('category', 'season')
+        }),
+        ('Stock Information', {
+            'fields': ('stock', 'total_stock'),
+            'description': 'Legacy stock field (kept for compatibility). Use size-specific stock below.'
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),
@@ -73,12 +86,53 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
     
+    def total_stock_display(self, obj):
+        """Display total stock across all sizes"""
+        return obj.total_stock
+    total_stock_display.short_description = 'Total Stock'
+    
     def save_model(self, request, obj, form, change):
         """Validate price is not negative"""
         if obj.price is not None and obj.price < Decimal('0.01'):
             obj.price = Decimal('0.01')
             messages.warning(request, "Price was set to the minimum value of 0.01")
         super().save_model(request, obj, form, change)
+
+@admin.register(Size)
+class SizeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'sort_order', 'created_at')
+    list_editable = ('sort_order',)
+    search_fields = ('name', 'description')
+    readonly_fields = ('created_at',)
+    ordering = ('sort_order', 'name')
+    
+    fieldsets = (
+        ('Size Information', {
+            'fields': ('name', 'description', 'sort_order')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+
+@admin.register(ProductSize)
+class ProductSizeAdmin(admin.ModelAdmin):
+    list_display = ('product', 'size', 'stock', 'created_at')
+    list_filter = ('size', 'product__category', 'product__season')
+    search_fields = ('product__name', 'size__name')
+    readonly_fields = ('created_at', 'updated_at')
+    list_editable = ('stock',)
+    
+    fieldsets = (
+        ('Product Size Information', {
+            'fields': ('product', 'size', 'stock')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -164,7 +218,8 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ('full_name', 'email', 'phone', 'user__username', 'user__email')
     readonly_fields = ('created_at', 'updated_at', 'status_history_display')
     inlines = [OrderItemInline]
-    actions = ['mark_as_processing', 'mark_as_packed', 'mark_as_shipped', 'mark_as_out_for_delivery', 'mark_as_delivered', 'mark_as_paid', 'mark_as_cancelled']
+    # Removed bulk actions - use order details page for status updates
+    actions = []
     
     fieldsets = (
         ('Customer Information', {
@@ -324,8 +379,14 @@ class OrderAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
     
     def mark_as_processing(self, request, queryset):
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.filter(status='pending'))
         updated = queryset.filter(status='pending').update(status='processing')
-        for order in queryset.filter(status='processing'):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated status
+            order.refresh_from_db()
+            
             # Create status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -345,8 +406,14 @@ class OrderAdmin(admin.ModelAdmin):
     mark_as_processing.short_description = "Mark selected orders as processing"
     
     def mark_as_packed(self, request, queryset):
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.filter(status='processing'))
         updated = queryset.filter(status='processing').update(status='packed')
-        for order in queryset.filter(status='packed'):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated status
+            order.refresh_from_db()
+            
             # Create status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -366,8 +433,14 @@ class OrderAdmin(admin.ModelAdmin):
     mark_as_packed.short_description = "Mark selected orders as packed"
     
     def mark_as_shipped(self, request, queryset):
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.filter(status__in=['processing', 'packed']))
         updated = queryset.filter(status__in=['processing', 'packed']).update(status='shipped')
-        for order in queryset.filter(status='shipped'):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated status
+            order.refresh_from_db()
+            
             # Create status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -387,8 +460,14 @@ class OrderAdmin(admin.ModelAdmin):
     mark_as_shipped.short_description = "Mark selected orders as shipped"
     
     def mark_as_out_for_delivery(self, request, queryset):
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.filter(status='shipped'))
         updated = queryset.filter(status='shipped').update(status='out_for_delivery')
-        for order in queryset.filter(status='out_for_delivery'):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated status
+            order.refresh_from_db()
+            
             # Create status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -408,8 +487,14 @@ class OrderAdmin(admin.ModelAdmin):
     mark_as_out_for_delivery.short_description = "Mark selected orders as out for delivery"
     
     def mark_as_delivered(self, request, queryset):
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.filter(status__in=['shipped', 'out_for_delivery']))
         updated = queryset.filter(status__in=['shipped', 'out_for_delivery']).update(status='delivered')
-        for order in queryset.filter(status='delivered'):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated status
+            order.refresh_from_db()
+            
             # Create status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -429,8 +514,14 @@ class OrderAdmin(admin.ModelAdmin):
     mark_as_delivered.short_description = "Mark selected orders as delivered"
     
     def mark_as_paid(self, request, queryset):
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.filter(payment_status=False))
         updated = queryset.update(payment_status=True)
-        for order in queryset.filter(payment_status=True):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated payment status
+            order.refresh_from_db()
+            
             # Create note in status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -451,8 +542,14 @@ class OrderAdmin(admin.ModelAdmin):
     
     def mark_as_cancelled(self, request, queryset):
         """Mark orders as cancelled"""
+        # Get orders that will be updated before updating them
+        orders_to_update = list(queryset.exclude(status__in=['delivered', 'cancelled']))
         updated = queryset.exclude(status__in=['delivered', 'cancelled']).update(status='cancelled')
-        for order in queryset.filter(status='cancelled'):
+        
+        for order in orders_to_update:
+            # Refresh the order from database to get updated status
+            order.refresh_from_db()
+            
             # Create status history
             OrderStatusHistory.objects.create(
                 order=order,
@@ -476,67 +573,93 @@ class OrderAdmin(admin.ModelAdmin):
                 )
         self.message_user(request, f'{updated} order(s) marked as cancelled.')
     mark_as_cancelled.short_description = "Mark selected orders as cancelled"
-
+    
     def action_buttons(self, obj):
-        """Display action buttons for status updates in the list view"""
-        # Define available transitions based on current status
-        status_transitions = {
-            'pending': ['processing'],
-            'processing': ['packed', 'cancelled'],
-            'packed': ['shipped', 'cancelled'],
-            'shipped': ['out_for_delivery', 'cancelled'],
-            'out_for_delivery': ['delivered', 'cancelled'],
-            'delivered': [],  # No transitions from delivered
-            'cancelled': []   # No transitions from cancelled
-        }
-        
-        available_transitions = status_transitions.get(obj.status, [])
-        buttons = []
-        
-        for status in available_transitions:
-            status_display = dict(Order.STATUS_CHOICES).get(status)
-            status_colors = {
-                'pending': 'gray',
-                'processing': 'blue',
-                'packed': 'purple',
-                'shipped': 'orange',
-                'out_for_delivery': 'teal',
-                'delivered': 'green',
-                'cancelled': 'red'
-            }
-            color = status_colors.get(status, 'black')
-            
-            url = reverse('admin:store_order_status_update', args=[obj.pk, status])
-            buttons.append(
-                f'<a href="{url}" '
-                f'onclick="return confirm(\'Are you sure you want to change status to {status_display}?\');" '
-                f'style="display: inline-block; margin: 2px; padding: 3px 8px; background-color: {color}; '
-                f'color: white; text-decoration: none; border-radius: 3px; font-size: 0.8em;">'
-                f'{status_display}</a>'
-            )
-        
-        # Payment button
-        if not obj.payment_status:
-            url = reverse('admin:store_order_payment_update', args=[obj.pk])
-            buttons.append(
-                f'<a href="{url}" '
-                f'onclick="return confirm(\'Are you sure you want to mark this order as paid?\');" '
-                f'style="display: inline-block; margin: 2px; padding: 3px 8px; background-color: green; '
-                f'color: white; text-decoration: none; border-radius: 3px; font-size: 0.8em;">'
-                f'Mark Paid</a>'
-            )
-        
-        if buttons:
-            return format_html(''.join(buttons))
-        return "No actions available"
+        """Display view button to navigate to order details page"""
+        # Only show view/eye icon that leads to order details page
+        url = reverse('admin:store_order_change', args=[obj.pk])
+        button = (
+            f'<a href="{url}" '
+            f'style="display: inline-block; margin: 2px; padding: 5px 10px; background-color: #007cba; '
+            f'color: white; text-decoration: none; border-radius: 3px; font-size: 0.9em;" '
+            f'title="View order details">'
+            f'👁️ View Details</a>'
+        )
+        return format_html(button)
     
     action_buttons.short_description = "Actions"
     action_buttons.allow_tags = True
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'subject', 'created_at', 'is_replied', 'replied_by')
+    list_filter = ('is_replied', 'created_at', 'replied_by')
+    search_fields = ('name', 'email', 'subject', 'message')
+    readonly_fields = ('name', 'email', 'subject', 'message', 'created_at')
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Contact Information', {
+            'fields': ('name', 'email', 'subject', 'created_at')
+        }),
+        ('Message', {
+            'fields': ('message',)
+        }),
+        ('Admin Reply', {
+            'fields': ('is_replied', 'admin_reply', 'replied_at', 'replied_by')
+        }),
+    )
+    
+    def save_model(self, request, obj, form, change):
+        if change and obj.admin_reply and not obj.is_replied:
+            obj.is_replied = True
+            obj.replied_at = timezone.now()
+            obj.replied_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(UserMessageReply)
+class UserMessageReplyAdmin(admin.ModelAdmin):
+    list_display = ('original_message_user', 'replied_by', 'created_at', 'reply_preview')
+    list_filter = ('created_at', 'replied_by')
+    search_fields = ('original_message__user__username', 'original_message__user__email', 'reply_message')
+    readonly_fields = ('created_at',)
+    ordering = ['-created_at']
+    
+    def original_message_user(self, obj):
+        return obj.original_message.user.username
+    original_message_user.short_description = 'User'
+    
+    def reply_preview(self, obj):
+        return obj.reply_message[:50] + '...' if len(obj.reply_message) > 50 else obj.reply_message
+    reply_preview.short_description = 'Reply Preview'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Only set replied_by for new replies
+            obj.replied_by = request.user
+        super().save_model(request, obj, form, change)
 
 class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0
     readonly_fields = ('product', 'quantity', 'subtotal')
+
+@admin.register(Rating)
+class RatingAdmin(admin.ModelAdmin):
+    list_display = ['user', 'product', 'rating', 'created_at', 'has_review']
+    list_filter = ['rating', 'created_at', 'product__category']
+    search_fields = ['user__username', 'product__name', 'review']
+    readonly_fields = ['created_at']
+    list_per_page = 25
+    
+    def has_review(self, obj):
+        return bool(obj.review)
+    has_review.boolean = True
+    has_review.short_description = 'Has Review'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'product')
 
 # Re-register UserAdmin
 admin.site.unregister(User)
