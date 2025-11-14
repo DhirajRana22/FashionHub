@@ -865,3 +865,36 @@ def admin_logout(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
     return redirect('store:login')
+
+
+@staff_member_required
+def admin_update_order_status(request, pk):
+    """Update the status of an order."""
+    order = get_object_or_404(Order, pk=pk)
+
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled']:
+            order.status = new_status
+            order.save()
+            OrderStatusHistory.objects.create(order=order, status=new_status)
+            messages.success(request, f"Order status updated to {new_status}.")
+        else:
+            messages.error(request, "Invalid status provided.")
+
+        return redirect('custom_admin:orders')
+
+    return render(request, 'admin/order_status_update.html', {'order': order})
+
+
+@staff_member_required
+def admin_toggle_user_status(request, pk):
+    """Toggle the active status of a user."""
+    user = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        user.is_active = not user.is_active
+        user.save()
+        status = "activated" if user.is_active else "deactivated"
+        messages.success(request, f"User has been {status} successfully.")
+        return redirect('custom_admin:users')
+    return render(request, 'admin/user_detail.html', {'user': user})

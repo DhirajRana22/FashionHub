@@ -30,6 +30,8 @@ urlpatterns = [
     path('orders/<int:pk>/send-email/', admin_views.admin_send_order_email, name='send_order_email'),
     path('orders/<int:pk>/invoice/', admin_views.admin_order_invoice, name='order_invoice'),
     path('orders/<int:pk>/export/', admin_views.admin_export_order, name='export_order'),
+    path('orders/<int:pk>/update-status/', admin_views.admin_update_order_status, name='update_order_status'),
+    path('users/<int:pk>/toggle-status/', admin_views.admin_toggle_user_status, name='toggle_user_status'),
 
     
     # Users

@@ -1,4 +1,5 @@
 {% extends 'store/base.html' %}
+{% load store_extras %}
 
 {% block title %}Shopping Cart - FashionHub{% endblock %}
 
@@ -36,9 +37,12 @@
                                         {% csrf_token %}
                                         <div class="input-group input-group-sm" style="width: 120px;">
                                             {% if item.size %}
-                                                {% with item.product.product_sizes.get|default:item.product.product_sizes.filter:size=item.size|first as product_size %}
-                                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ product_size.stock }}" class="form-control" oninput="this.value = Math.max(1, Math.min({{ product_size.stock }}, this.value))">
-                                                {% endwith %}
+                                                {% get_product_size item.product.product_sizes item.size as product_size %}
+                                                {% if product_size %}
+                                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ product_size.stock }}" class="form-control" oninput="this.value = Math.max(1, Math.min({{ product_size.stock }}, this.value))">
+                                                {% else %}
+                                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control">
+                                                {% endif %}
                                             {% else %}
                                                 <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.total_stock }}" class="form-control" oninput="this.value = Math.max(1, Math.min({{ item.product.total_stock }}, this.value))">
                                             {% endif %}
@@ -47,9 +51,12 @@
                                     </form>
                                     <small class="text-muted d-block mt-1">
                                         {% if item.size %}
-                                            {% with item.product.product_sizes.get|default:item.product.product_sizes.filter:size=item.size|first as product_size %}
-                                            {{ product_size.stock }} available
-                                            {% endwith %}
+                                            {% get_product_size item.product.product_sizes item.size as product_size %}
+                                            {% if product_size %}
+                                                {{ product_size.stock }} available
+                                            {% else %}
+                                                Out of stock
+                                            {% endif %}
                                         {% else %}
                                             {{ item.product.total_stock }} available
                                         {% endif %}
